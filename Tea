@@ -1,0 +1,81 @@
+import streamlit as st
+import json
+import os
+
+DATA_FILE = "data.json"
+
+# Load existing data
+def load_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as file:
+            return json.load(file)
+    return {"friends": [], "items": [], "orders": []}
+
+# Save data
+def save_data(data):
+    with open(DATA_FILE, "w") as file:
+        json.dump(data, file, indent=4)
+
+data = load_data()
+
+st.title("Cafeteria Order Tracker")
+
+# Tabs for navigation
+tab1, tab2, tab3 = st.tabs(["📌 Friends", "🍔 Items", "📝 Orders"])
+
+# Tab 1: Friends
+with tab1:
+    st.header("Manage Friends")
+    name = st.text_input("Enter Friend's Name")
+    pic = st.file_uploader("Upload a Picture", type=["jpg", "png"])
+
+    if st.button("Add Friend"):
+        if name:
+            friend = {"name": name, "pic": None}
+            if pic:
+                pic_path = f"pics/{name}.png"
+                with open(pic_path, "wb") as f:
+                    f.write(pic.getbuffer())
+                friend["pic"] = pic_path
+
+            data["friends"].append(friend)
+            save_data(data)
+            st.success(f"Added {name}")
+
+    for friend in data["friends"]:
+        st.write(f"🧑 {friend['name']}")
+
+# Tab 2: Items
+with tab2:
+    st.header("Cafeteria Items")
+    item_name = st.text_input("Item Name")
+    item_price = st.number_input("Price", min_value=0.0, step=0.5)
+
+    if st.button("Add Item"):
+        if item_name and item_price:
+            data["items"].append({"name": item_name, "price": item_price})
+            save_data(data)
+            st.success(f"Added {item_name}")
+
+    for item in data["items"]:
+        st.write(f"🍕 {item['name']} - ₹{item['price']}")
+
+# Tab 3: Orders
+with tab3:
+    st.header("Take Orders")
+    selected_friend = st.selectbox("Select Friend", [f["name"] for f in data["friends"]])
+    selected_item = st.selectbox("Select Item", [i["name"] for i in data["items"]])
+
+    if st.button("Add Order"):
+        data["orders"].append({"friend": selected_friend, "item": selected_item})
+        save_data(data)
+        st.success(f"Added order: {selected_friend} ordered {selected_item}")
+
+    st.subheader("Today's Orders")
+    for order in data["orders"]:
+        st.write(f"✅ {order['friend']} ordered {order['item']}")
+
+if st.button("Clear Orders"):
+    data["orders"] = []
+    save_data(data)
+    st.warning("Orders cleared")
